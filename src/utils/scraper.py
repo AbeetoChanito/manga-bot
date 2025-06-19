@@ -6,21 +6,29 @@ from bs4 import BeautifulSoup
 
 MANGAPARK_BASE_URL = "https://mangapark.com"
 
-def is_correct_manga_tag(tag: Tag) -> bool: 
+def is_correct_manga_link(tag: Tag) -> bool: 
     return tag.name == "a" and "title" in tag["href"] and tag.get_text() != ""
 
 def parse_manga_links(html: str) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
 
-    return [(tag["href"], tag.get_text()) for tag in soup.find_all(is_correct_manga_tag)] # type: ignore
+    return [(tag["href"], tag.get_text()) for tag in soup.find_all(is_correct_manga_link)] # type: ignore
 
-def is_image(tag: Tag) -> bool:
+def is_page_image(tag: Tag) -> bool:
     return tag.name == "img" and tag.get("class", None) == ["w-full", "h-full"]
 
-def parse_images(html: str) -> list[str]:
+def parse_page_images(html: str) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
 
-    return [tag["src"] for tag in soup.find_all(is_image)] # type: ignore
+    return [tag["src"] for tag in soup.find_all(is_page_image)] # type: ignore
+
+def is_cover_image(tag: Tag) -> bool:
+    return tag.name == "img" and "thumb" in tag["src"]
+
+def parse_cover_images(html: str) -> list[tuple[str, str, str]]:
+    soup = BeautifulSoup(html, "html.parser")
+
+    return [(tag.parent["href"], tag["title"], tag["src"]) for tag in soup.find_all(is_cover_image)] # type: ignore
 
 def get_search_url(search_query: str) -> str:
     search = urlencode({"word": search_query})
@@ -59,12 +67,11 @@ async def get_html_raw(url_path) -> str:
             output = await response.text()
             return output
         
-async def search_manga_links(input_search: str) -> list[tuple[str, str]]:
+async def search_manga_links(input_search: str) -> list[tuple[str, str, str]]:
     search_url = get_search_url(input_search)
     html_data = await get_html_raw(search_url)
-    manga_links = parse_manga_links(html_data)
-    manga_links = [manga_link for i, manga_link in enumerate(manga_links) if i % 2 == 0]
-    return manga_links
+    manga_covers = parse_cover_images(html_data)
+    return manga_covers
 
 async def get_manga_chapters(manga_link: str) -> list[tuple[str, str]]:
     html_data = await get_html_raw(f"{MANGAPARK_BASE_URL}{manga_link}")
@@ -78,7 +85,7 @@ async def get_manga_chapters(manga_link: str) -> list[tuple[str, str]]:
 
 async def get_manga_chapter_images(chapter_link: str) -> list[str]:
     html_data = await get_html_raw(f"{MANGAPARK_BASE_URL}{chapter_link}")
-    images = parse_images(html_data)
+    images = parse_page_images(html_data)
 
     return images
     
@@ -88,8 +95,8 @@ async def main():
 
     manga_links = await search_manga_links(input_search)
 
-    for i, (link, name) in enumerate(manga_links):
-        print(f"{i}: {name} ({link})")
+    for i, (link, name, cover) in enumerate(manga_links):
+        print(f"{i}: {name} ({link}) (cover: {cover})")
 
     manga_index = int(input("Enter index: "))
 

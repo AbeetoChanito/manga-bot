@@ -1,0 +1,68 @@
+('/title/11643-en-attack-on-titan', 'Attack on Titan')
+('/title/123739-en-shingeki-no-kyojin-before-the-fall', 'Shingeki No Kyojin - Before The Fall')
+('/title/97542-en-shingeki-no-kyojin-before-long-long-conversation-doujinshi', 'Shingeki no Kyojin - Before Long, Long Conversation (Doujinshi)')
+('/title/60763-en-attack-on-titan-lost-girls', 'Attack on Titan: Lost Girls')
+('/title/119658-en-shingeki-no-kyojin-birth-of-levi-kuinaki-sentaku', 'Shingeki no Kyojin - Birth of Levi: Kuinaki Sentaku')
+('/title/88097-en-shingeki-no-kyojin-dj-reluctant-heroes', 'Shingeki no Kyojin dj: Reluctant Heroes')
+('/title/88099-en-shingeki-no-kyojin-dj-what-we-call-this-feeling', 'Shingeki no Kyojin dj: What We Call This Feeling?')
+('/title/119610-en-attack-on-titan-before-the-fall', 'Attack On Titan - Before The Fall')
+('/title/246136-en-attack-on-titan-no-regrets-complete-color-edition', 'Attack on Titan: No Regrets Complete Color Edition')
+('/title/34470-en-attack-on-titan-before-the-fall', 'Attack on Titan: Before the Fall')
+('/title/91787-en-shingeki-no-kyojin-haitenai-doujinshi', 'Shingeki no Kyojin - Haitenai (Doujinshi)')
+('/title/219550-en-attack-on-titan', 'Attack on Titan')
+('/title/12298-en-attack-on-titan-no-regrets/3903046-vol-tbd-extra-edition-5-levi-and-the-encounter-nobody-knows', 'Vol.tbd Extra Edition 5: Levi And The Encounter Nobody Knows?')
+('/title/120928-en-attack-on-titan-lost-girls/1672001-ch-10', 'Ch.10')
+('/title/244074-en-the-best-of-attack-on-titan-in-color/7214390-chapter-6-5', 'Chapter 6.5')
+('/title/96968-en-attack-on-titan-anthology/3840909-vol-1-exclusive-attack-on-titan-manga-app-motion-book-preview', 'Vol.1 Exclusive "attack On Titan Manga" App Motion Book Preview')
+('/title/28638-en-attack-on-titan-junior-high/4953421-vol-5-final-period-farewell-attack-junior-high', 'Vol.5 Final Period: Farewell, Attack Junior High!')
+('/title/119611-en-shingeki-no-kyojin-before-the-fall/5162212-vol-17-final-chapter-to-a-new-age', 'Vol.17 Final Chapter: To A New Age')
+('/title/119615-en-shingeki-no-kyojin-gaiden-kuinaki-sentaku/1082631-ch-008-7', 'Ch.008.7')
+('/title/88092-en-shingeki-no-kyojin-song-of-prayer-dedicated-to-you-doujinshi/1488043-ch-0', 'Ch.0')
+('/title/96538-en-shingeki-no-kyojin-to-say-goodbye-is-to-die-a-little/2202046-chapter-0', 'Chapter 0')
+('/title/119773-en-shingeki-no-kyojin-lost-girls/678081-ch-1', 'Ch.1')
+('/title/109527-en-shingeki-no-kyojin-deep-in-your-mind-doujinshi', 'Shingeki no Kyojin - Deep in Your Mind (Doujinshi)')
+('/title/88103-en-shingeki-no-kyojin-bokura-no-itakoro-doujinshi', 'Shingeki no Kyojin - Bokura no Itakoro (Doujinshi)')
+('/title/109590-en-shingeki-no-kyojin-seoumono-doujinshi', 'Shingeki no Kyojin - Seoumono (Doujinshi)')
+('/title/94956-en-shingeki-no-kyojin-pathos-doujinshi/2140461-chapter-0', 'Chapter 0')
+('/title/119772-en-shingeki-no-kyojin-lost-girls/977136-ch-010', 'Ch.010')
+('/title/88928-en-attack-on-titan-dj-welcome-to-the-ballroom', 'Attack on Titan dj: Welcome To The Ballroom')
+('/title/109761-en-attack-on-titan-a-werewolf-s-dream-with-a-vampire-doujinshi', "Attack on Titan - A Werewolf's Dream With a Vampire (Doujinshi)")
+('/title/85078-en-shingeki-no-kyojin-dj-antibiotics/1082699-ch-002', 'Ch.002')
+('/title/112792-en-attack-on-titan-doujinshi', 'Attack on Titan doujinshi')
+...
+/thumb/W600/amim/f99/6044d281fed3eb1621b3299f_225_299_31729.jpg
+/thumb/W600/amim/9ed/60910e5fadc9c575545fbde9_225_323_113725.jpeg
+/thumb/W600/amim/2da/6077cf112dd9d0474477cad2_300_450_241445.png
+/thumb/W600/amim/a35/6044e13d1118f46a4c03753a_225_336_36984.jpg
+/thumb/W600/amim/d5d/60910c5aadc9c575545d5d5d_225_338_19829.jpg
+/thumb/W600/amim/db3/6045782ec9d6ca27790083bd_300_450_65231.jpg
+/thumb/W600/amim/1c3/6045782ec9d6ca27790083c1_300_450_31101.jpg
+/thumb/W600/amim/127/60910c56adc9c575545d5721_225_337_18780.jpg
+/thumb/W600/ampi/e71/e71580160e9c2ce81c60bfebfc4b126f09c32f3a_200_280_16030.jpeg
+/thumb/W600/amim/76c/6044d699683bdf7869f3ec67_225_317_40490.jpg
+/thumb/W600/amim/e80/60457ae4c9d6ca277900a08e_256_350_22491.jpg
+/thumb/W600/ampi/3f5/3f5fb9f16356eaaec05f21112adc0ea403783e2a_267_400_102254.jpeg
+/thumb/W600/amim/3ca/6044d8c8ba762d2e2632eac3_225_328_56976.jpg
+/thumb/W600/amim/470/60910cb8adc9c575545df074_300_450_70641.png
+/thumb/W600/ampi/71e/71e41eff27d9c6c40ae9154ae66ba3f1e0aafc11_400_600_57720.jpeg
+/thumb/W600/amim/bb8/60457ee2c9d6ca277900c8bb_300_450_159103.jpg
+/thumb/W600/amim/052/6044d53cfaebf7498b283250_225_337_41831.jpg
+/thumb/W600/amim/757/60910c56adc9c575545d5757_200_314_30927.jpg
+/thumb/W600/amim/ad7/60910c56adc9c575545d57da_200_299_28814.jpg
+/thumb/W600/amim/3b3/6045782dc9d6ca27790083b3_300_450_42311.jpg
+/thumb/W600/amim/165/60457e8bc9d6ca277900c561_300_367_190055.png
+/thumb/W600/amim/02e/60910c64adc9c575545d6e20_196_350_11936.jpg
+/thumb/W600/amim/cc8/60767b165ae4bbaac72e78cc_286_400_51523.jpg
+/thumb/W600/amim/0cf/60767b4ecc9f77af56280fc0_241_350_19263.jpg
+/thumb/W600/amim/8cf/60767b4ecc9f77af56280fc8_282_400_86572.jpg
+/thumb/W600/amim/9c3/6045782fc9d6ca27790083c9_300_450_51375.jpg
+/thumb/W600/amim/d30/60767b52cc9f77af5628103d_246_350_22516.jpg
+/thumb/W600/amim/619/60457d51c9d6ca277900b916_900_1259_367545.jpg
+/thumb/W600/amim/51e/60910c64adc9c575545d6e15_200_298_28430.jpg
+/thumb/W600/amim/540/60767b52cc9f77af56281045_283_400_72911.jpg
+/thumb/W600/amim/b3a/604578b8c9d6ca2779008a3b_300_450_21605.jpg
+/thumb/W600/amim/803/60767b8f63316cb3ed611308_426_599_65279.jpg
+/thumb/W600/amim/77c/6045765ec9d6ca2779006c77_200_314_14710.jpg
+/thumb/W600/amim/98e/60767c09c593d1bd02b03e89_1280_1650_297894.jpg
+/thumb/W600/amim/423/607683c38fcc5e7a7388f324_681_1024_19339.jpg
+/thumb/W600/amim/853/607683c58fcc5e7a7388f358_680_1024_267803.jpg
