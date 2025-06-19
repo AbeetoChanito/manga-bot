@@ -82,6 +82,7 @@ async def get_manga_chapter_images(chapter_link: str) -> list[str]:
 
     return images
     
+# proof of concept cli to show the scraper works
 async def main():
     input_search = input("Enter manga name: ")
 
