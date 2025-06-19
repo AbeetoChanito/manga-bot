@@ -6,29 +6,21 @@ from bs4 import BeautifulSoup
 
 MANGAPARK_BASE_URL = "https://mangapark.com"
 
-def is_correct_manga_link(tag: Tag) -> bool: 
-    return tag.name == "a" and "title" in tag["href"] and tag.get_text() != ""
-
-def parse_manga_links(html: str) -> list[tuple[str, str]]:
+def parse_chapter_links(html: str) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
+    soup = soup.find(lambda x: x.get("data-name", None) == "chapter-list") # type: ignore
 
-    return [(tag["href"], tag.get_text()) for tag in soup.find_all(is_correct_manga_link)] # type: ignore
-
-def is_page_image(tag: Tag) -> bool:
-    return tag.name == "img" and tag.get("class", None) == ["w-full", "h-full"]
+    return [(tag["href"], tag.get_text()) for tag in soup.find_all(lambda x: x.name == "a")] # type: ignore
 
 def parse_page_images(html: str) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
 
-    return [tag["src"] for tag in soup.find_all(is_page_image)] # type: ignore
-
-def is_cover_image(tag: Tag) -> bool:
-    return tag.name == "img" and "thumb" in tag["src"]
+    return [tag.find(lambda x: x.name == "img")["src"] for tag in soup.find_all(lambda x: x.get("data-name", None) == "image-item")] # type: ignore
 
 def parse_cover_images(html: str) -> list[tuple[str, str, str]]:
     soup = BeautifulSoup(html, "html.parser")
 
-    return [(tag.parent["href"], tag["title"], tag["src"]) for tag in soup.find_all(is_cover_image)] # type: ignore
+    return [(tag.parent["href"], tag["title"], tag["src"]) for tag in soup.find_all(lambda x: x.name == "img" and "thumb" in x["src"])] # type: ignore
 
 def get_search_url(search_query: str) -> str:
     search = urlencode({"word": search_query})
@@ -75,11 +67,9 @@ async def search_manga_links(input_search: str) -> list[tuple[str, str, str]]:
 
 async def get_manga_chapters(manga_link: str) -> list[tuple[str, str]]:
     html_data = await get_html_raw(f"{MANGAPARK_BASE_URL}{manga_link}")
-    manga_links = parse_manga_links(html_data)
+    manga_links = parse_chapter_links(html_data)
 
     manga_links = list(reversed(manga_links))
-    DISCARD_PHRASES = ["Newly Added", "Most Likes", "Start Reading"]
-    manga_links = list(filter(lambda f: all([p not in f[1] for p in DISCARD_PHRASES]) and f[0] != manga_link, manga_links))
     
     return manga_links
 
