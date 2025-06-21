@@ -6,25 +6,30 @@ from bs4 import BeautifulSoup
 
 MANGAPARK_BASE_URL = "https://mangapark.com"
 
+
 def parse_chapter_links(html: str) -> list[tuple[str, str]]:
     soup = BeautifulSoup(html, "html.parser")
-    soup = soup.find(lambda x: x.get("data-name", None) == "chapter-list") # type: ignore
+    soup = soup.find(lambda x: x.get("data-name", None) == "chapter-list")  # type: ignore
 
-    return [(tag["href"], tag.get_text()) for tag in soup.find_all(lambda x: x.name == "a")] # type: ignore
+    return [(tag["href"], tag.get_text()) for tag in soup.find_all(lambda x: x.name == "a")]  # type: ignore
+
 
 def parse_page_images(html: str) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
 
-    return [tag.find(lambda x: x.name == "img")["src"] for tag in soup.find_all(lambda x: x.get("data-name", None) == "image-item")] # type: ignore
+    return [tag.find(lambda x: x.name == "img")["src"] for tag in soup.find_all(lambda x: x.get("data-name", None) == "image-item")]  # type: ignore
+
 
 def parse_cover_images(html: str) -> list[tuple[str, str, str]]:
     soup = BeautifulSoup(html, "html.parser")
 
-    return [(tag.parent["href"], tag["title"], tag["src"]) for tag in soup.find_all(lambda x: x.name == "img" and "thumb" in x["src"])] # type: ignore
+    return [(tag.parent["href"], tag["title"], tag["src"]) for tag in soup.find_all(lambda x: x.name == "img" and "thumb" in x["src"])]  # type: ignore
+
 
 def get_search_url(search_query: str) -> str:
     search = urlencode({"word": search_query})
     return f"{MANGAPARK_BASE_URL}/search?{search}"
+
 
 async def get_html_raw(url: str) -> str:
     # NOTE: the cookies are crucial for retrieving the image files
@@ -42,7 +47,7 @@ async def get_html_raw(url: str) -> str:
         "sec-fetch-site": "none",
         "sec-fetch-user": "?1",
         "upgrade-insecure-requests": "1",
-        "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36"
+        "user-agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Mobile Safari/537.36",
     }
     COOKIES = {
         "theme": "mdark",
@@ -50,7 +55,7 @@ async def get_html_raw(url: str) -> str:
         "Hm_lvt_a7025e25c8500c732b8f48cc46e21467": "1750273651,1750275977,1750299608,1750311668",
         "Hm_lpvt_a7025e25c8500c732b8f48cc46e21467": "1750311668",
         "HMACCOUNT": "A6016F638E220909",
-        "wd": "553x1087"
+        "wd": "553x1087",
     }
     async with aiohttp.ClientSession(headers=HEADERS, cookies=COOKIES) as session:
         async with session.get(url) as response:
@@ -58,27 +63,31 @@ async def get_html_raw(url: str) -> str:
 
             output = await response.text()
             return output
-        
+
+
 async def search_manga_links(input_search: str) -> list[tuple[str, str, str]]:
     search_url = get_search_url(input_search)
     html_data = await get_html_raw(search_url)
     manga_covers = parse_cover_images(html_data)
     return manga_covers
 
+
 async def get_manga_chapters(manga_link: str) -> list[tuple[str, str]]:
     html_data = await get_html_raw(f"{MANGAPARK_BASE_URL}{manga_link}")
     manga_links = parse_chapter_links(html_data)
 
     manga_links = list(reversed(manga_links))
-    
+
     return manga_links
+
 
 async def get_manga_chapter_images(chapter_link: str) -> list[str]:
     html_data = await get_html_raw(f"{MANGAPARK_BASE_URL}{chapter_link}")
     images = parse_page_images(html_data)
 
     return images
-    
+
+
 # proof of concept cli to show the scraper works
 async def main():
     input_search = input("Enter manga name: ")
@@ -105,6 +114,7 @@ async def main():
     images = await get_manga_chapter_images(chapter_link)
     for i, link in enumerate(images):
         print(f"{i}: {link}")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
