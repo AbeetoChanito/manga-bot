@@ -26,7 +26,7 @@ def get_search_url(search_query: str) -> str:
     search = urlencode({"word": search_query})
     return f"{MANGAPARK_BASE_URL}/search?{search}"
 
-async def get_html_raw(url_path) -> str:
+async def get_html_raw(url: str) -> str:
     # NOTE: the cookies are crucial for retrieving the image files
     HEADERS = {
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -53,7 +53,7 @@ async def get_html_raw(url_path) -> str:
         "wd": "553x1087"
     }
     async with aiohttp.ClientSession(headers=HEADERS, cookies=COOKIES) as session:
-        async with session.get(url_path) as response:
+        async with session.get(url) as response:
             assert response.status == 200, "Response status not 200."
 
             output = await response.text()

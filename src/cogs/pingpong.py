@@ -9,5 +9,5 @@ class PingPong(commands.Cog):
     async def ping(self, ctx: discord.ApplicationContext):
         await ctx.respond("Pong!")
 
-def setup(bot: discord.Bot) -> None:
+def setup(bot: discord.Bot):
     bot.add_cog(PingPong(bot))
