@@ -25,25 +25,33 @@ async def url_to_image_file(url: str) -> discord.File:
 
 class MangaReaderView(discord.ui.View):
     @staticmethod
-    async def new_manga_reader_view(link: str, name: str) -> 'MangaReaderView':
-        view = MangaReaderView(await scraper.get_manga_chapter_images(link), name, link)
+    async def new_manga_reader_view(chapters: list[tuple[str, str]], current_chapter: int) -> 'MangaReaderView':
+        view = MangaReaderView(chapters, current_chapter)
+        await view.get_chapter_data()
         return view
 
-    def __init__(self, pages: list[str], name: str, link: str):
+    def __init__(self, chapters: list[tuple[str, str]], current_chapter: int):
         super().__init__(timeout=1000)
-        self.link = link
-        self.name = name
-        self.pages = pages
+        self.chapters = chapters
+        self.current_chapter = current_chapter
+        self.name: str = ""
+        self.pages: list[str] = []
         self.current_page = 0
         self.file: discord.File | None = None
 
+    async def get_chapter_data(self):
+        link, self.name = self.chapters[self.current_chapter]
+        self.pages = await scraper.get_manga_chapter_images(link)
+        self.current_page = 0
+
     async def generate_embed(self) -> discord.Embed:
         embed = discord.Embed(
-            title=f"Page #{self.current_page + 1}",
+            title=self.name,
             color=discord.Colour.dark_grey()
         )
         self.file = await url_to_image_file(self.pages[self.current_page])
         embed.set_image(url=f"attachment://{self.file.filename}")
+        embed.set_footer(text=f"Page #{self.current_page + 1}")
         
         return embed
 
@@ -61,6 +69,22 @@ class MangaReaderView(discord.ui.View):
         embed = await self.generate_embed()
         await interaction.edit_original_response(embed=embed, file=self.file, view=self) # type: ignore
 
+    @discord.ui.button(style=discord.ButtonStyle.gray, label="Next Chapter")
+    async def cycle_next_chapter(self, button: discord.Button, interaction: discord.Interaction):
+        await interaction.response.defer()
+        self.current_chapter = (self.current_chapter + 1) % len(self.chapters)
+        await self.get_chapter_data()
+        embed = await self.generate_embed()
+        await interaction.edit_original_response(embed=embed, file=self.file, view=self) # type: ignore
+
+    @discord.ui.button(style=discord.ButtonStyle.gray, label="Previous Chapter")
+    async def cycle_prev_chapter(self, button: discord.Button, interaction: discord.Interaction):
+        await interaction.response.defer()
+        self.current_chapter = (self.current_chapter - 1 ) % len(self.chapters)
+        await self.get_chapter_data()
+        embed = await self.generate_embed()
+        await interaction.edit_original_response(embed=embed, file=self.file, view=self) # type: ignore
+
 
 class MangaChapterSelector(discord.ui.Select):
     def _init__(self):
@@ -69,8 +93,7 @@ class MangaChapterSelector(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
         index = int(self.values[0])  # type: ignore
-        link, name = self.view.options[index]  # type: ignore
-        view = await MangaReaderView.new_manga_reader_view(link, name)
+        view = await MangaReaderView.new_manga_reader_view(self.view.options, index) # type: ignore
         embed = await view.generate_embed()
         await interaction.edit_original_response(embed=embed, file=view.file, view=view) # type: ignore
 
