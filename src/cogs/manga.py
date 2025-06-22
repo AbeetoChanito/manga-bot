@@ -47,7 +47,7 @@ class MangaReaderView(discord.ui.View):
         self.name: str = ""
         self.pages: list[str] = []
         self.current_page = 0
-        self.file: discord.File | None = None
+        self.file: discord.File = None  # type: ignore
 
     async def get_chapter_data(self):
         chapter = self.chapters[self.current_chapter]
@@ -70,7 +70,7 @@ class MangaReaderView(discord.ui.View):
         await interaction.response.defer()
         self.current_page = (self.current_page - 1) % len(self.pages)
         embed = await self.generate_embed()
-        await interaction.edit_original_response(embed=embed, file=self.file, view=self)  # type: ignore
+        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
 
     @discord.ui.button(style=discord.ButtonStyle.gray, label="➡️", row=0)
     async def cycle_right(
@@ -79,7 +79,7 @@ class MangaReaderView(discord.ui.View):
         await interaction.response.defer()
         self.current_page = (self.current_page + 1) % len(self.pages)
         embed = await self.generate_embed()
-        await interaction.edit_original_response(embed=embed, file=self.file, view=self)  # type: ignore
+        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
 
     @discord.ui.button(style=discord.ButtonStyle.gray, label="Next Chapter")
     async def cycle_next_chapter(
@@ -89,7 +89,7 @@ class MangaReaderView(discord.ui.View):
         self.current_chapter = (self.current_chapter + 1) % len(self.chapters)
         await self.get_chapter_data()
         embed = await self.generate_embed()
-        await interaction.edit_original_response(embed=embed, file=self.file, view=self)  # type: ignore
+        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
 
     @discord.ui.button(style=discord.ButtonStyle.gray, label="Previous Chapter")
     async def cycle_prev_chapter(
@@ -99,7 +99,7 @@ class MangaReaderView(discord.ui.View):
         self.current_chapter = (self.current_chapter - 1) % len(self.chapters)
         await self.get_chapter_data()
         embed = await self.generate_embed()
-        await interaction.edit_original_response(embed=embed, file=self.file, view=self)  # type: ignore
+        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
 
 
 class MangaChapterSelector(discord.ui.Select):
@@ -109,9 +109,11 @@ class MangaChapterSelector(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
         index = int(self.values[0])  # type: ignore
-        view = await MangaReaderView.new_manga_reader_view(self.view.chapters, index)  # type: ignore
-        embed = await view.generate_embed()
-        await interaction.edit_original_response(embed=embed, file=view.file, view=view)  # type: ignore
+        new_view = await MangaReaderView.new_manga_reader_view(self.view.chapters, index)  # type: ignore
+        embed = await new_view.generate_embed()
+        await interaction.edit_original_response(
+            embed=embed, file=new_view.file, view=new_view
+        )
 
 
 class MangaChapterSelectorView(discord.ui.View):
@@ -172,14 +174,14 @@ class MangaSelector(discord.ui.Select):
     def __init__(self, search_results: list[scraper.Manga], to_search: str):
         self.to_search = to_search
         self.search_results = search_results
-        self.selected_index: int = 0  # type: ignore
+        self.selected_index: int = 0
 
         options = [
             discord.SelectOption(label=manga.name, value=str(i), default=i == 0)
             for i, manga in enumerate(search_results)
         ]
 
-        self.file: discord.File | None = None
+        self.file: discord.File = None  # type: ignore
 
         super().__init__(options=options)
 
@@ -209,7 +211,9 @@ class MangaSelector(discord.ui.Select):
                 option.default = False
                 break
         self.options[self.selected_index].default = True
-        await interaction.edit_original_response(embed=embed, view=self.view, file=self.file)  # type: ignore
+        await interaction.edit_original_response(
+            embed=embed, view=self.view, file=self.file
+        )
 
 
 class MangaSelectorView(discord.ui.View):

@@ -24,21 +24,28 @@ class Manga:
 
 def parse_chapter_links(html: str) -> list[Chapter]:
     soup = BeautifulSoup(html, "html.parser")
-    soup = soup.find(lambda x: x.get("data-name", None) == "chapter-list")  # type: ignore
+    chapter_list = soup.find(lambda x: x.get("data-name", None) == "chapter-list")
+    assert chapter_list is not None
+    link_items = chapter_list.find_all(lambda x: x.name == "a") # type: ignore
+    assert link_items is not None
 
-    return [Chapter(tag["href"], tag.get_text()) for tag in soup.find_all(lambda x: x.name == "a")]  # type: ignore
+    return [Chapter(tag["href"], tag.get_text()) for tag in link_items]
 
 
 def parse_page_images(html: str) -> list[str]:
     soup = BeautifulSoup(html, "html.parser")
+    image_items = soup.find_all(lambda x: x.get("data-name", None) == "image-item")
+    assert image_items is not None
 
-    return [tag.find(lambda x: x.name == "img")["src"] for tag in soup.find_all(lambda x: x.get("data-name", None) == "image-item")]  # type: ignore
+    return [tag.find(lambda x: x.name == "img")["src"] for tag in image_items]  # type: ignore
 
 
 def parse_cover_images(html: str) -> list[Manga]:
     soup = BeautifulSoup(html, "html.parser")
+    cover_items = soup.find_all(lambda x: x.name == "img" and "thumb" in x["src"])
+    assert cover_items is not None
 
-    return [Manga(tag.parent["href"], tag["title"], tag["src"]) for tag in soup.find_all(lambda x: x.name == "img" and "thumb" in x["src"])]  # type: ignore
+    return [Manga(tag.parent["href"], tag["title"], tag["src"]) for tag in cover_items]  # type: ignore
 
 
 def get_search_url(search_query: str) -> str:
