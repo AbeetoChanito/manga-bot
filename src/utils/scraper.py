@@ -4,15 +4,29 @@ from bs4.element import Tag
 from bs4 import BeautifulSoup
 from datetime import timedelta
 from aiohttp_client_cache import CachedSession, SQLiteBackend
+from dataclasses import dataclass
 
 MANGAPARK_BASE_URL = "https://mangapark.com"
 
 
-def parse_chapter_links(html: str) -> list[tuple[str, str]]:
+@dataclass
+class Chapter:
+    link: str
+    name: str
+
+
+@dataclass
+class Manga:
+    link: str
+    name: str
+    cover: str
+
+
+def parse_chapter_links(html: str) -> list[Chapter]:
     soup = BeautifulSoup(html, "html.parser")
     soup = soup.find(lambda x: x.get("data-name", None) == "chapter-list")  # type: ignore
 
-    return [(tag["href"], tag.get_text()) for tag in soup.find_all(lambda x: x.name == "a")]  # type: ignore
+    return [Chapter(tag["href"], tag.get_text()) for tag in soup.find_all(lambda x: x.name == "a")]  # type: ignore
 
 
 def parse_page_images(html: str) -> list[str]:
@@ -21,10 +35,10 @@ def parse_page_images(html: str) -> list[str]:
     return [tag.find(lambda x: x.name == "img")["src"] for tag in soup.find_all(lambda x: x.get("data-name", None) == "image-item")]  # type: ignore
 
 
-def parse_cover_images(html: str) -> list[tuple[str, str, str]]:
+def parse_cover_images(html: str) -> list[Manga]:
     soup = BeautifulSoup(html, "html.parser")
 
-    return [(tag.parent["href"], tag["title"], tag["src"]) for tag in soup.find_all(lambda x: x.name == "img" and "thumb" in x["src"])]  # type: ignore
+    return [Manga(tag.parent["href"], tag["title"], tag["src"]) for tag in soup.find_all(lambda x: x.name == "img" and "thumb" in x["src"])]  # type: ignore
 
 
 def get_search_url(search_query: str) -> str:
@@ -67,20 +81,18 @@ async def get_html_raw(url: str) -> str:
             return output
 
 
-async def search_manga_links(input_search: str) -> list[tuple[str, str, str]]:
+async def search_manga_links(input_search: str) -> list[Manga]:
     search_url = get_search_url(input_search)
     html_data = await get_html_raw(search_url)
     manga_covers = parse_cover_images(html_data)
     return manga_covers
 
 
-async def get_manga_chapters(manga_link: str) -> list[tuple[str, str]]:
+async def get_manga_chapters(manga_link: str) -> list[Chapter]:
     html_data = await get_html_raw(f"{MANGAPARK_BASE_URL}{manga_link}")
-    manga_links = parse_chapter_links(html_data)
-
-    manga_links = list(reversed(manga_links))
-
-    return manga_links
+    chapter_links = parse_chapter_links(html_data)
+    chapter_links = list(reversed(chapter_links))
+    return chapter_links
 
 
 async def get_manga_chapter_images(chapter_link: str) -> list[str]:
@@ -96,21 +108,21 @@ async def main():
 
     manga_links = await search_manga_links(input_search)
 
-    for i, (link, name, cover) in enumerate(manga_links):
-        print(f"{i}: {name} ({link}) (cover: {cover})")
+    for i, manga in enumerate(manga_links):
+        print(f"{i}: {manga.name} ({manga.link}) (cover: {manga.cover})")
 
     manga_index = int(input("Enter index: "))
 
-    manga_link = manga_links[manga_index][0]
+    manga_link = manga_links[manga_index].link
     print(f"Manga link: {manga_link}")
 
     manga_chapter_links = await get_manga_chapters(manga_link)
 
-    for i, (link, name) in enumerate(manga_chapter_links):
-        print(f"{i}: {name} ({link})")
+    for i, chapter in enumerate(manga_chapter_links):
+        print(f"{i}: {chapter.name} ({chapter.link})")
 
     chapter_index = int(input("Enter index: "))
-    chapter_link = manga_chapter_links[chapter_index][0]
+    chapter_link = manga_chapter_links[chapter_index].link
     print(f"Chapter link: {chapter_link}")
 
     images = await get_manga_chapter_images(chapter_link)

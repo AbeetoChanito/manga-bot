@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 import utils.scraper as scraper  # type: ignore
-import utils.cache as cache  # type: ignore
 from datetime import timedelta
 from aiohttp_client_cache import CachedSession, SQLiteBackend
 from io import BytesIO
@@ -35,13 +34,13 @@ async def url_to_image_file(url: str) -> discord.File:
 class MangaReaderView(discord.ui.View):
     @staticmethod
     async def new_manga_reader_view(
-        chapters: list[tuple[str, str]], current_chapter: int
+        chapters: list[scraper.Chapter], current_chapter: int
     ) -> "MangaReaderView":
         view = MangaReaderView(chapters, current_chapter)
         await view.get_chapter_data()
         return view
 
-    def __init__(self, chapters: list[tuple[str, str]], current_chapter: int):
+    def __init__(self, chapters: list[scraper.Chapter], current_chapter: int):
         super().__init__(timeout=1000)
         self.chapters = chapters
         self.current_chapter = current_chapter
@@ -51,8 +50,9 @@ class MangaReaderView(discord.ui.View):
         self.file: discord.File | None = None
 
     async def get_chapter_data(self):
-        link, self.name = self.chapters[self.current_chapter]
-        self.pages = await scraper.get_manga_chapter_images(link)
+        chapter = self.chapters[self.current_chapter]
+        self.name = chapter.name
+        self.pages = await scraper.get_manga_chapter_images(chapter.link)
         self.current_page = 0
 
     async def generate_embed(self) -> discord.Embed:
@@ -109,7 +109,7 @@ class MangaChapterSelector(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
         index = int(self.values[0])  # type: ignore
-        view = await MangaReaderView.new_manga_reader_view(self.view.options, index)  # type: ignore
+        view = await MangaReaderView.new_manga_reader_view(self.view.chapters, index)  # type: ignore
         embed = await view.generate_embed()
         await interaction.edit_original_response(embed=embed, file=view.file, view=view)  # type: ignore
 
@@ -123,15 +123,15 @@ class MangaChapterSelectorView(discord.ui.View):
             await scraper.get_manga_chapters(manga_link), manga_link
         )
 
-    def __init__(self, options: list[tuple[str, str]], manga_link: str):
+    def __init__(self, chapters: list[scraper.Chapter], manga_link: str):
         super().__init__(timeout=120)
-        self.options = options
+        self.chapters = chapters
         self.manga_link = manga_link
         self.current_chunk = 0
 
         self.chunks = [
-            [(i + j, options[i + j]) for j in range(min(25, len(options) - i))]
-            for i in range(0, len(options), 25)
+            [(i + j, chapters[i + j]) for j in range(min(25, len(chapters) - i))]
+            for i in range(0, len(chapters), 25)
         ]
 
         self.selector: discord.ui.Select = MangaChapterSelector()
@@ -140,8 +140,8 @@ class MangaChapterSelectorView(discord.ui.View):
 
     def initialize_selector(self):
         selector_options = [
-            discord.SelectOption(label=name, value=str(i))
-            for i, (_, name) in self.chunks[self.current_chunk]
+            discord.SelectOption(label=chapter.name, value=str(i))
+            for i, chapter in self.chunks[self.current_chunk]
         ]
         self.selector.options = selector_options
 
@@ -168,7 +168,7 @@ class MangaSelectorButton(discord.ui.Button):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        link = self.view.selector.search_results[self.view.selector.selected_index][0]  # type: ignore
+        link = self.view.selector.search_results[self.view.selector.selected_index].link  # type: ignore
         new_view = await MangaChapterSelectorView.new_manga_chapter_selector_view(link)
         await interaction.edit_original_response(
             embed=None, view=new_view, attachments=[]
@@ -182,14 +182,14 @@ class MangaSelector(discord.ui.Select):
             (await scraper.search_manga_links(to_search))[:10], to_search
         )
 
-    def __init__(self, search_results: list[tuple[str, str, str]], to_search: str):
+    def __init__(self, search_results: list[scraper.Manga], to_search: str):
         self.to_search = to_search
         self.search_results = search_results
         self.selected_index: int | None = None
 
         options = [
-            discord.SelectOption(label=name, value=str(i))
-            for i, (_, name, _) in enumerate(search_results)
+            discord.SelectOption(label=manga.name, value=str(i))
+            for i, manga in enumerate(search_results)
         ]
 
         self.file: discord.File | None = None
@@ -197,15 +197,19 @@ class MangaSelector(discord.ui.Select):
         super().__init__(options=options)
 
     async def generate_embed(self, index: int) -> discord.Embed:
-        link, name, cover = self.search_results[index]
+        manga = self.search_results[index]
         embed = discord.Embed(
             title=f"Search Results for *{self.to_search}*",
             color=discord.Colour.dark_grey(),
         )
         embed.add_field(
-            name="", value=f"[{name}]({scraper.MANGAPARK_BASE_URL}{link})", inline=False
+            name="",
+            value=f"[{manga.name}]({scraper.MANGAPARK_BASE_URL}{manga.link})",
+            inline=False,
         )
-        self.file = await url_to_image_file(f"{scraper.MANGAPARK_BASE_URL}{cover}")
+        self.file = await url_to_image_file(
+            f"{scraper.MANGAPARK_BASE_URL}{manga.cover}"
+        )
         embed.set_image(url=f"attachment://{self.file.filename}")
         return embed
 
