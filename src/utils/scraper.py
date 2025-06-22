@@ -1,8 +1,9 @@
-import aiohttp
 import asyncio
 from urllib.parse import urlencode
 from bs4.element import Tag
 from bs4 import BeautifulSoup
+from datetime import timedelta
+from aiohttp_client_cache import CachedSession, SQLiteBackend
 
 MANGAPARK_BASE_URL = "https://mangapark.com"
 
@@ -33,6 +34,7 @@ def get_search_url(search_query: str) -> str:
 
 async def get_html_raw(url: str) -> str:
     # NOTE: the cookies are crucial for retrieving the image files
+    cache = SQLiteBackend(expire_after=timedelta(days=1))
     HEADERS = {
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "accept-language": "en-US,en;q=0.9",
@@ -57,7 +59,7 @@ async def get_html_raw(url: str) -> str:
         "HMACCOUNT": "A6016F638E220909",
         "wd": "553x1087",
     }
-    async with aiohttp.ClientSession(headers=HEADERS, cookies=COOKIES) as session:
+    async with CachedSession(headers=HEADERS, cookies=COOKIES, cache=cache) as session:
         async with session.get(url) as response:
             assert response.status == 200, "Response status not 200."
 

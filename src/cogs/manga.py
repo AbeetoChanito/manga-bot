@@ -1,12 +1,15 @@
 import discord
 from discord.ext import commands
 import utils.scraper as scraper  # type: ignore
-import aiohttp
+import utils.cache as cache  # type: ignore
+from datetime import timedelta
+from aiohttp_client_cache import CachedSession, SQLiteBackend
 from io import BytesIO
 
 
 async def url_to_image_file(url: str) -> discord.File:
-    async with aiohttp.ClientSession() as session:
+    cache = SQLiteBackend(expire_after=timedelta(days=1))
+    async with CachedSession(cache=cache) as session:
         async with session.get(url) as response:
             assert response.status == 200, "Response status not 200."
 
