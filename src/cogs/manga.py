@@ -162,19 +162,6 @@ class MangaChapterSelectorView(discord.ui.View):
         await interaction.response.edit_message(view=self)
 
 
-class MangaSelectorButton(discord.ui.Button):
-    def __init__(self):
-        super().__init__(style=discord.ButtonStyle.gray, label="Confirm")
-
-    async def callback(self, interaction: discord.Interaction):
-        await interaction.response.defer()
-        link = self.view.selector.search_results[self.view.selector.selected_index].link  # type: ignore
-        new_view = await MangaChapterSelectorView.new_manga_chapter_selector_view(link)
-        await interaction.edit_original_response(
-            embed=None, view=new_view, attachments=[]
-        )
-
-
 class MangaSelector(discord.ui.Select):
     @staticmethod
     async def new_manga_selector(to_search: str) -> "MangaSelector":
@@ -185,10 +172,10 @@ class MangaSelector(discord.ui.Select):
     def __init__(self, search_results: list[scraper.Manga], to_search: str):
         self.to_search = to_search
         self.search_results = search_results
-        self.selected_index: int | None = None
+        self.selected_index: int = 0  # type: ignore
 
         options = [
-            discord.SelectOption(label=manga.name, value=str(i))
+            discord.SelectOption(label=manga.name, value=str(i), default=i == 0)
             for i, manga in enumerate(search_results)
         ]
 
@@ -196,8 +183,8 @@ class MangaSelector(discord.ui.Select):
 
         super().__init__(options=options)
 
-    async def generate_embed(self, index: int) -> discord.Embed:
-        manga = self.search_results[index]
+    async def generate_embed(self) -> discord.Embed:
+        manga = self.search_results[self.selected_index]
         embed = discord.Embed(
             title=f"Search Results for *{self.to_search}*",
             color=discord.Colour.dark_grey(),
@@ -215,10 +202,8 @@ class MangaSelector(discord.ui.Select):
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        if self.selected_index is None:
-            self.view.add_item(MangaSelectorButton())  # type: ignore
         self.selected_index = int(self.values[0])  # type: ignore
-        embed = await self.generate_embed(self.selected_index)
+        embed = await self.generate_embed()
         for option in self.options:
             if option.default:
                 option.default = False
@@ -231,15 +216,26 @@ class MangaSelectorView(discord.ui.View):
     @staticmethod
     async def new_manga_selector_view(to_search: str) -> "MangaSelectorView":
         view = MangaSelectorView(to_search)
-        view.selector = await MangaSelector.new_manga_selector(to_search)
-        view.add_item(view.selector)
+        await view.set_search(to_search)
         return view
 
     def __init__(self, to_search: str):
         super().__init__(timeout=120)
         self.to_search = to_search
-        self.selector: MangaSelector | None = None
-        self.confirm: MangaSelectorButton | None = None
+        self.selector: MangaSelector = None  # type: ignore
+
+    async def set_search(self, to_search: str):
+        self.selector = await MangaSelector.new_manga_selector(to_search)
+        self.add_item(self.selector)
+
+    @discord.ui.button(style=discord.ButtonStyle.gray, label="Confirm")
+    async def callback(self, button: discord.Button, interaction: discord.Interaction):
+        await interaction.response.defer()
+        link = self.selector.search_results[self.selector.selected_index].link
+        new_view = await MangaChapterSelectorView.new_manga_chapter_selector_view(link)
+        await interaction.edit_original_response(
+            embed=None, view=new_view, attachments=[]
+        )
 
 
 class Manga(commands.Cog):
@@ -254,7 +250,8 @@ class Manga(commands.Cog):
     ):
         await ctx.defer()
         new_view = await MangaSelectorView.new_manga_selector_view(to_search)
-        await ctx.respond(view=new_view)
+        embed = await new_view.selector.generate_embed()
+        await ctx.respond(embed=embed, view=new_view, file=new_view.selector.file)
 
 
 def setup(bot: discord.Bot):
