@@ -2,12 +2,12 @@ import discord
 from discord.ext import commands
 import utils.scraper as scraper  # type: ignore
 from datetime import timedelta
-from aiohttp_client_cache import CachedSession, SQLiteBackend
+from aiohttp_client_cache import CachedSession, MongoDBBackend
 from io import BytesIO
 
 
 async def url_to_image_file(url: str) -> discord.File:
-    cache = SQLiteBackend(expire_after=timedelta(days=1))
+    cache = MongoDBBackend(expire_after=timedelta(days=1))
     async with CachedSession(cache=cache) as session:
         async with session.get(url) as response:
             assert response.status == 200, "Response status not 200."
@@ -183,7 +183,7 @@ class MangaSelector(discord.ui.Select):
 
         self.file: discord.File = None  # type: ignore
 
-        super().__init__(options=options)
+        super().__init__(options=options, row=0)
 
     async def generate_embed(self) -> discord.Embed:
         manga = self.search_results[self.selected_index]
@@ -232,7 +232,7 @@ class MangaSelectorView(discord.ui.View):
         self.selector = await MangaSelector.new_manga_selector(to_search)
         self.add_item(self.selector)
 
-    @discord.ui.button(style=discord.ButtonStyle.gray, label="Confirm")
+    @discord.ui.button(style=discord.ButtonStyle.gray, label="Confirm", row=1)
     async def callback(self, button: discord.Button, interaction: discord.Interaction):
         await interaction.response.defer()
         link = self.selector.search_results[self.selector.selected_index].link

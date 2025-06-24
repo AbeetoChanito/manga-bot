@@ -1,9 +1,8 @@
 import asyncio
 from urllib.parse import urlencode
-from bs4.element import Tag
 from bs4 import BeautifulSoup
 from datetime import timedelta
-from aiohttp_client_cache import CachedSession, SQLiteBackend
+from aiohttp_client_cache import CachedSession, MongoDBBackend
 from dataclasses import dataclass
 
 MANGAPARK_BASE_URL = "https://mangapark.com"
@@ -26,7 +25,7 @@ def parse_chapter_links(html: str) -> list[Chapter]:
     soup = BeautifulSoup(html, "html.parser")
     chapter_list = soup.find(lambda x: x.get("data-name", None) == "chapter-list")
     assert chapter_list is not None
-    link_items = chapter_list.find_all(lambda x: x.name == "a") # type: ignore
+    link_items = chapter_list.find_all(lambda x: x.name == "a")  # type: ignore
     assert link_items is not None
 
     return [Chapter(tag["href"], tag.get_text()) for tag in link_items]
@@ -55,7 +54,7 @@ def get_search_url(search_query: str) -> str:
 
 async def get_html_raw(url: str) -> str:
     # NOTE: the cookies are crucial for retrieving the image files
-    cache = SQLiteBackend(expire_after=timedelta(days=1))
+    cache = MongoDBBackend(expire_after=timedelta(days=1))
     HEADERS = {
         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
         "accept-language": "en-US,en;q=0.9",
