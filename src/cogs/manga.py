@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import utils.scraper as scraper  # type: ignore
+from utils.backend import Backend  # type: ignore
 from datetime import timedelta
 from aiohttp_client_cache import CachedSession, MongoDBBackend
 from io import BytesIO
@@ -31,23 +32,56 @@ async def url_to_image_file(url: str) -> discord.File:
             return file
 
 
+class BookmarkJumperButton(discord.ui.Button):
+    def __init__(self, target_chapter: int):
+        super().__init__(label="Jump To Bookmark", row=1)
+        self.target_chapter = target_chapter
+
+    async def callback(self, interaction: discord.Interaction):
+        await self.view.update_chapter(interaction, self.target_chapter)  # type: ignore
+
+
 class MangaReaderView(discord.ui.View):
     @staticmethod
     async def new_manga_reader_view(
-        chapters: list[scraper.Chapter], current_chapter: int
+        chapters: list[scraper.Chapter],
+        manga_link: str,
+        current_chapter: int,
+        user_id: int,
     ) -> "MangaReaderView":
-        view = MangaReaderView(chapters, current_chapter)
+        view = MangaReaderView(chapters, manga_link, current_chapter)
+        await view.handle_bookmark_jumper(user_id)
         await view.get_chapter_data()
         return view
 
-    def __init__(self, chapters: list[scraper.Chapter], current_chapter: int):
+    def __init__(
+        self, chapters: list[scraper.Chapter], manga_link: str, current_chapter: int
+    ):
         super().__init__(timeout=1000)
+        self.manga_link = manga_link
         self.chapters = chapters
         self.current_chapter = current_chapter
         self.name: str = ""
         self.pages: list[str] = []
         self.current_page = 0
-        self.file: discord.File = None  # type: ignore
+        self.button: BookmarkJumperButton | None = None
+
+    async def handle_bookmark_jumper(self, user_id: int):
+        backend = await Backend.get_instance()
+        bookmarks = await backend.get_bookmarks(user_id)
+        chapter: int | None = None
+        for bookmark in bookmarks:
+            link = bookmark["link"]
+            if link == self.manga_link:
+                chapter = int(bookmark["chapter"])
+                break
+        if chapter is None:
+            return
+        if self.button is None:
+            self.button = BookmarkJumperButton(chapter)
+            self.add_item(self.button)
+        else:
+            self.button.target_chapter = chapter
 
     async def get_chapter_data(self):
         chapter = self.chapters[self.current_chapter]
@@ -63,43 +97,57 @@ class MangaReaderView(discord.ui.View):
 
         return embed
 
+    async def update_page(self, interaction: discord.Interaction, page_number: int):
+        await interaction.response.defer()
+        self.current_page = page_number
+        embed = await self.generate_embed()
+        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
+
+    async def update_chapter(
+        self, interaction: discord.Interaction, chapter_number: int
+    ):
+        await interaction.response.defer()
+        self.current_chapter = chapter_number
+        await self.get_chapter_data()
+        embed = await self.generate_embed()
+        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
+
     @discord.ui.button(style=discord.ButtonStyle.gray, label="⬅️", row=0)
     async def cycle_left(
         self, button: discord.Button, interaction: discord.Interaction
     ):
-        await interaction.response.defer()
-        self.current_page = (self.current_page - 1) % len(self.pages)
-        embed = await self.generate_embed()
-        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
+        await self.update_page(interaction, (self.current_page - 1) % len(self.pages))
 
     @discord.ui.button(style=discord.ButtonStyle.gray, label="➡️", row=0)
     async def cycle_right(
         self, button: discord.Button, interaction: discord.Interaction
     ):
-        await interaction.response.defer()
-        self.current_page = (self.current_page + 1) % len(self.pages)
-        embed = await self.generate_embed()
-        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
+        await self.update_page(interaction, (self.current_page + 1) % len(self.pages))
 
-    @discord.ui.button(style=discord.ButtonStyle.gray, label="Next Chapter")
-    async def cycle_next_chapter(
-        self, button: discord.Button, interaction: discord.Interaction
-    ):
-        await interaction.response.defer()
-        self.current_chapter = (self.current_chapter + 1) % len(self.chapters)
-        await self.get_chapter_data()
-        embed = await self.generate_embed()
-        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
-
-    @discord.ui.button(style=discord.ButtonStyle.gray, label="Previous Chapter")
+    @discord.ui.button(style=discord.ButtonStyle.gray, label="Previous Chapter", row=0)
     async def cycle_prev_chapter(
         self, button: discord.Button, interaction: discord.Interaction
     ):
+        await self.update_chapter(
+            interaction, (self.current_chapter - 1) % len(self.chapters)
+        )
+
+    @discord.ui.button(style=discord.ButtonStyle.gray, label="Next Chapter", row=0)
+    async def cycle_next_chapter(
+        self, button: discord.Button, interaction: discord.Interaction
+    ):
+        await self.update_chapter(
+            interaction, (self.current_chapter + 1) % len(self.chapters)
+        )
+
+    @discord.ui.button(style=discord.ButtonStyle.gray, label="Bookmark", row=1)
+    async def bookmark(self, button: discord.Button, interaction: discord.Interaction):
         await interaction.response.defer()
-        self.current_chapter = (self.current_chapter - 1) % len(self.chapters)
-        await self.get_chapter_data()
-        embed = await self.generate_embed()
-        await interaction.edit_original_response(embed=embed, file=self.file, view=self)
+        backend = await Backend.get_instance()
+        await backend.add_new_bookmark(interaction.user.id, self.manga_link, self.current_chapter)  # type: ignore
+
+        user_id = interaction.user.id  # type: ignore
+        await self.handle_bookmark_jumper(user_id)
 
 
 class MangaChapterSelector(discord.ui.Select):
@@ -109,7 +157,8 @@ class MangaChapterSelector(discord.ui.Select):
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
         index = int(self.values[0])  # type: ignore
-        new_view = await MangaReaderView.new_manga_reader_view(self.view.chapters, index)  # type: ignore
+        user_id = interaction.user.id  # type: ignore
+        new_view = await MangaReaderView.new_manga_reader_view(self.view.chapters, self.view.manga_link, index, user_id)  # type: ignore
         embed = await new_view.generate_embed()
         await interaction.edit_original_response(
             embed=embed, file=new_view.file, view=new_view
@@ -121,9 +170,8 @@ class MangaChapterSelectorView(discord.ui.View):
     async def new_manga_chapter_selector_view(
         manga_link: str,
     ) -> "MangaChapterSelectorView":
-        return MangaChapterSelectorView(
-            await scraper.get_manga_chapters(manga_link), manga_link
-        )
+        manga_chapters = await scraper.get_manga_chapters(manga_link)
+        return MangaChapterSelectorView(manga_chapters, manga_link)
 
     def __init__(self, chapters: list[scraper.Chapter], manga_link: str):
         super().__init__(timeout=120)
@@ -147,29 +195,33 @@ class MangaChapterSelectorView(discord.ui.View):
         ]
         self.selector.options = selector_options
 
+    async def send_updated_selector(self, interaction: discord.Interaction, chunk: int):
+        self.current_chunk = chunk
+        self.initialize_selector()
+        await interaction.response.edit_message(view=self)
+
     @discord.ui.button(style=discord.ButtonStyle.gray, label="⬅️", row=0)
     async def cycle_left(
         self, button: discord.Button, interaction: discord.Interaction
     ):
-        self.current_chunk = (self.current_chunk - 1) % len(self.chunks)
-        self.initialize_selector()
-        await interaction.response.edit_message(view=self)
+        await self.send_updated_selector(
+            interaction, (self.current_chunk - 1) % len(self.chunks)
+        )
 
     @discord.ui.button(style=discord.ButtonStyle.gray, label="➡️", row=0)
     async def cycle_right(
         self, button: discord.Button, interaction: discord.Interaction
     ):
-        self.current_chunk = (self.current_chunk + 1) % len(self.chunks)
-        self.initialize_selector()
-        await interaction.response.edit_message(view=self)
+        await self.send_updated_selector(
+            interaction, (self.current_chunk + 1) % len(self.chunks)
+        )
 
 
 class MangaSelector(discord.ui.Select):
     @staticmethod
     async def new_manga_selector(to_search: str) -> "MangaSelector":
-        return MangaSelector(
-            (await scraper.search_manga_links(to_search))[:10], to_search
-        )
+        top_searches = (await scraper.search_manga_links(to_search))[:10]
+        return MangaSelector(top_searches, to_search)
 
     def __init__(self, search_results: list[scraper.Manga], to_search: str):
         self.to_search = to_search
@@ -180,8 +232,6 @@ class MangaSelector(discord.ui.Select):
             discord.SelectOption(label=manga.name, value=str(i), default=i == 0)
             for i, manga in enumerate(search_results)
         ]
-
-        self.file: discord.File = None  # type: ignore
 
         super().__init__(options=options, row=0)
 
@@ -226,7 +276,6 @@ class MangaSelectorView(discord.ui.View):
     def __init__(self, to_search: str):
         super().__init__(timeout=120)
         self.to_search = to_search
-        self.selector: MangaSelector = None  # type: ignore
 
     async def set_search(self, to_search: str):
         self.selector = await MangaSelector.new_manga_selector(to_search)

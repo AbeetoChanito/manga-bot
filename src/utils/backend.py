@@ -1,17 +1,31 @@
 import motor
 import motor.motor_asyncio
 from dataclasses import dataclass
+from typing import Optional
+import asyncio
 
 
 class Backend:
+    __instance: Optional["Backend"] = None
+    __lock = asyncio.Lock()
+
     def __init__(self):
+        assert self.__instance is None, "Backend instance already exists."
         self.client = motor.motor_asyncio.AsyncIOMotorClient(
             "mongodb://localhost:27017/"
         )
         self.db = self.client["db"]
         self.users = self.db["users"]
 
+    @classmethod
+    async def get_instance(cls) -> "Backend":
+        async with cls.__lock:
+            if cls.__instance is None:
+                cls.__instance = Backend()
+            return cls.__instance
+
     async def add_new_user(self, user_id: int):
+        # we only add a new user if the user doesn't exist
         await self.users.update_one(
             {"_id": user_id}, {"$setOnInsert": {"bookmarks": []}}, upsert=True
         )
@@ -21,11 +35,15 @@ class Backend:
     ):
         await self.add_new_user(user_id)
 
+        # if the manga link isn't already registered with the user,
+        # then we push it
         await self.users.update_one(
             {"_id": user_id, "bookmarks.link": {"$ne": manga_link}},
             {"$push": {"bookmarks": {"link": manga_link, "chapter": chapter_number}}},
         )
 
+        # if the manga link is registered with the user,
+        # we update the bookmark
         await self.users.update_one(
             {"_id": user_id, "bookmarks.link": manga_link},
             {"$set": {"bookmarks.$.chapter": chapter_number}},
