@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 load_dotenv()
 BOT_TOKEN = getenv("BOT_TOKEN")
 
+assert BOT_TOKEN is not None, "Bot token not found in environment variables."
+
 bot = discord.Bot()
 
 

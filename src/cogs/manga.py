@@ -32,6 +32,15 @@ async def url_to_image_file(url: str) -> discord.File:
             return file
 
 
+async def find_bookmark(link: str, user_id: int) -> int | None:
+    backend = await Backend.get_instance()
+    bookmarks = await backend.get_bookmarks(user_id)
+    for bookmark in bookmarks:
+        if bookmark["link"] == link:
+            return int(bookmark["chapter"])
+    return None
+
+
 class BookmarkJumperButton(discord.ui.Button):
     def __init__(self, target_chapter: int):
         super().__init__(label="Jump To Bookmark", row=1)
@@ -69,12 +78,7 @@ class MangaReaderView(discord.ui.View):
     async def handle_bookmark_jumper(self, user_id: int):
         backend = await Backend.get_instance()
         bookmarks = await backend.get_bookmarks(user_id)
-        chapter: int | None = None
-        for bookmark in bookmarks:
-            link = bookmark["link"]
-            if link == self.manga_link:
-                chapter = int(bookmark["chapter"])
-                break
+        chapter: int | None = await find_bookmark(self.manga_link, user_id)
         if chapter is None:
             return
         if self.button is None:
@@ -144,19 +148,22 @@ class MangaReaderView(discord.ui.View):
     async def bookmark(self, button: discord.Button, interaction: discord.Interaction):
         await interaction.response.defer()
         backend = await Backend.get_instance()
-        await backend.add_new_bookmark(interaction.user.id, self.manga_link, self.current_chapter)  # type: ignore
-
         user_id = interaction.user.id  # type: ignore
+        await backend.add_new_bookmark(user_id, self.manga_link, self.current_chapter)  # type: ignore
+
         await self.handle_bookmark_jumper(user_id)
 
 
-class MangaChapterSelector(discord.ui.Select):
-    def _init__(self):
-        super().__init__(row=2)
+class MangaChapterSelectorConfirmButton(discord.ui.Button):
+    def __init__(self):
+        super().__init__(label="Confirm", row=3)
 
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
-        index = int(self.values[0])  # type: ignore
+        try:
+            index = int(self.view.selector.values[0])  # type: ignore
+        except TypeError:
+            index = self.view.bookmark_default  # type: ignore
         user_id = interaction.user.id  # type: ignore
         new_view = await MangaReaderView.new_manga_reader_view(self.view.chapters, self.view.manga_link, index, user_id)  # type: ignore
         embed = await new_view.generate_embed()
@@ -165,13 +172,23 @@ class MangaChapterSelector(discord.ui.Select):
         )
 
 
+class MangaChapterSelector(discord.ui.Select):
+    def __init__(self):
+        super().__init__(placeholder="Select a chapter", row=2)
+
+    async def callback(self, interaction: discord.Interaction):
+        await interaction.response.defer()
+
+
 class MangaChapterSelectorView(discord.ui.View):
     @staticmethod
     async def new_manga_chapter_selector_view(
-        manga_link: str,
+        manga_link: str, user_id: int
     ) -> "MangaChapterSelectorView":
         manga_chapters = await scraper.get_manga_chapters(manga_link)
-        return MangaChapterSelectorView(manga_chapters, manga_link)
+        view = MangaChapterSelectorView(manga_chapters, manga_link)
+        await view.handle_bookmark_jumper(user_id)
+        return view
 
     def __init__(self, chapters: list[scraper.Chapter], manga_link: str):
         super().__init__(timeout=120)
@@ -184,9 +201,12 @@ class MangaChapterSelectorView(discord.ui.View):
             for i in range(0, len(chapters), 25)
         ]
 
-        self.selector: discord.ui.Select = MangaChapterSelector()
+        self.selector = MangaChapterSelector()
         self.initialize_selector()
         self.add_item(self.selector)
+
+        self.confirm = MangaChapterSelectorConfirmButton()
+        self.add_item(self.confirm)
 
     def initialize_selector(self):
         selector_options = [
@@ -199,6 +219,17 @@ class MangaChapterSelectorView(discord.ui.View):
         self.current_chunk = chunk
         self.initialize_selector()
         await interaction.response.edit_message(view=self)
+
+    async def handle_bookmark_jumper(self, user_id: int):
+        backend = await Backend.get_instance()
+        bookmarks = await backend.get_bookmarks(user_id)
+        self.bookmark_default = await find_bookmark(self.manga_link, user_id)
+        if self.bookmark_default is None:
+            return
+
+        self.current_chunk = self.bookmark_default // 25
+        self.initialize_selector()
+        self.selector.options[self.bookmark_default - self.current_chunk * 25].default = True  # type: ignore
 
     @discord.ui.button(style=discord.ButtonStyle.gray, label="⬅️", row=0)
     async def cycle_left(
@@ -285,7 +316,10 @@ class MangaSelectorView(discord.ui.View):
     async def callback(self, button: discord.Button, interaction: discord.Interaction):
         await interaction.response.defer()
         link = self.selector.search_results[self.selector.selected_index].link
-        new_view = await MangaChapterSelectorView.new_manga_chapter_selector_view(link)
+        user_id = interaction.user.id  # type: ignore
+        new_view = await MangaChapterSelectorView.new_manga_chapter_selector_view(
+            link, user_id
+        )
         await interaction.edit_original_response(
             embed=None, view=new_view, attachments=[]
         )
