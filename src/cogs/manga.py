@@ -1,44 +1,8 @@
 import discord
 from discord.ext import commands
 import utils.scraper as scraper  # type: ignore
+import utils.bot_util as bot_util  # type: ignore
 from utils.backend import Backend  # type: ignore
-from datetime import timedelta
-from aiohttp_client_cache import CachedSession, MongoDBBackend
-from io import BytesIO
-
-
-async def url_to_image_file(url: str) -> discord.File:
-    cache = MongoDBBackend(expire_after=timedelta(days=1))
-    async with CachedSession(cache=cache) as session:
-        async with session.get(url) as response:
-            assert response.status == 200, "Response status not 200."
-
-            data = await response.read()
-            buffer = BytesIO(data)
-            buffer.seek(0)
-
-            file_ext = url.split(".")[-1].split("?")[0]
-            assert file_ext in [
-                "png",
-                "jpg",
-                "jpeg",
-                "gif",
-            ], "Invalid image file extension."
-
-            filename = f"image.{file_ext}"
-
-            file = discord.File(buffer, filename=filename)
-
-            return file
-
-
-async def find_bookmark(link: str, user_id: int) -> int | None:
-    backend = await Backend.get_instance()
-    bookmarks = await backend.get_bookmarks(user_id)
-    for bookmark in bookmarks:
-        if bookmark["link"] == link:
-            return int(bookmark["chapter"])
-    return None
 
 
 class BookmarkJumperButton(discord.ui.Button):
@@ -76,9 +40,7 @@ class MangaReaderView(discord.ui.View):
         self.button: BookmarkJumperButton | None = None
 
     async def handle_bookmark_jumper(self, user_id: int):
-        backend = await Backend.get_instance()
-        bookmarks = await backend.get_bookmarks(user_id)
-        chapter: int | None = await find_bookmark(self.manga_link, user_id)
+        chapter: int | None = await bot_util.find_bookmark(self.manga_link, user_id)
         if chapter is None:
             return
         if self.button is None:
@@ -95,7 +57,7 @@ class MangaReaderView(discord.ui.View):
 
     async def generate_embed(self) -> discord.Embed:
         embed = discord.Embed(title=self.name, color=discord.Colour.dark_grey())
-        self.file = await url_to_image_file(self.pages[self.current_page])
+        self.file = await bot_util.url_to_image_file(self.pages[self.current_page])
         embed.set_image(url=f"attachment://{self.file.filename}")
         embed.set_footer(text=f"Page #{self.current_page + 1}")
 
@@ -221,9 +183,7 @@ class MangaChapterSelectorView(discord.ui.View):
         await interaction.response.edit_message(view=self)
 
     async def handle_bookmark_jumper(self, user_id: int):
-        backend = await Backend.get_instance()
-        bookmarks = await backend.get_bookmarks(user_id)
-        self.bookmark_default = await find_bookmark(self.manga_link, user_id)
+        self.bookmark_default = await bot_util.find_bookmark(self.manga_link, user_id)
         if self.bookmark_default is None:
             return
 
@@ -277,7 +237,7 @@ class MangaSelector(discord.ui.Select):
             value=f"[{manga.name}]({scraper.MANGAPARK_BASE_URL}{manga.link})",
             inline=False,
         )
-        self.file = await url_to_image_file(
+        self.file = await bot_util.url_to_image_file(
             f"{scraper.MANGAPARK_BASE_URL}{manga.cover}"
         )
         embed.set_image(url=f"attachment://{self.file.filename}")

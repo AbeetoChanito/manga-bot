@@ -1,7 +1,7 @@
 import motor
 import motor.motor_asyncio
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Mapping
 import asyncio
 
 
@@ -49,7 +49,7 @@ class Backend:
             {"$set": {"bookmarks.$.chapter": chapter_number}},
         )
 
-    async def get_bookmarks(self, user_id: int) -> list[str]:
+    async def get_bookmarks(self, user_id: int) -> list[Mapping[str, str]]:
         await self.add_new_user(user_id)
         user = await self.users.find_one({"_id": user_id}, {"_id": 0, "bookmarks": 1})
         return user.get("bookmarks", [])
