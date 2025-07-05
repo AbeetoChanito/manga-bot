@@ -77,7 +77,8 @@ class MangaChapterSelectorView(discord.ui.View):
         await interaction.response.edit_message(view=self)
 
     async def handle_bookmark_jumper(self, user_id: int):
-        self.bookmark_default = await bot_util.find_bookmark(self.manga_link, user_id)
+        backend = await Backend.get_instance()
+        self.bookmark_default = await backend.find_bookmark(user_id, self.manga_link)
         if self.bookmark_default is None:
             return
 

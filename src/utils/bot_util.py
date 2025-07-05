@@ -28,12 +28,3 @@ async def url_to_image_file(url: str) -> discord.File:
             file = discord.File(buffer, filename=filename)
 
             return file
-
-
-async def find_bookmark(link: str, user_id: int) -> int | None:
-    backend = await Backend.get_instance()
-    bookmarks = await backend.get_bookmarks(user_id)
-    for bookmark in bookmarks:
-        if bookmark["link"] == link:
-            return int(bookmark["chapter"])
-    return None

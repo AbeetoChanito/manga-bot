@@ -53,3 +53,17 @@ class Backend:
         await self.add_new_user(user_id)
         user = await self.users.find_one({"_id": user_id}, {"_id": 0, "bookmarks": 1})
         return user.get("bookmarks", [])
+
+    
+    async def find_bookmark(self, user_id: int, manga_link: str) -> Optional[int]:
+        await self.add_new_user(user_id)
+        
+        user = await self.users.find_one(
+            {"_id": user_id, "bookmarks.link": manga_link},
+            {"_id": 0, "bookmarks.$": 1}
+        )
+        
+        if len(user["bookmarks"]) != 0:
+            return user["bookmarks"][0]["chapter"]
+
+        return None
