@@ -2,7 +2,8 @@ from aiohttp_client_cache import CachedSession, MongoDBBackend
 from datetime import timedelta
 from io import BytesIO
 import discord
-from utils.backend import Backend # type: ignore
+from utils.backend import Backend  # type: ignore
+
 
 async def url_to_image_file(url: str) -> discord.File:
     cache = MongoDBBackend(expire_after=timedelta(days=1))
