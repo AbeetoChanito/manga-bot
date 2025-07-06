@@ -35,7 +35,9 @@ class MangaSelector(discord.ui.Select["MangaSelectorView"]):
         embed = discord.Embed(
             color=discord.Colour.dark_grey(),
         )
-        if self.to_search is not None:
+        if self.to_search is None:
+            embed.title = f"Bookmarks"
+        else:
             embed.title = f"Search Results for *{self.to_search}*"
         embed.add_field(
             name="",
