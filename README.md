@@ -4,15 +4,22 @@ A Discord bot for browsing and reading manga directly within Discord using data 
 
 ## Usage
 
-- 🔍 **Search for manga** through the MangaPark database.
+- 🔍 **Search for manga** through the MangaPark database
 - 📚 **Browse chapters** from the search results
 - 📖 **Read manga pages** directly in Discord
+- 🔖 **Bookmark mangas** for future reading
 
 ## Screenshots
 
 | Select Manga | Select Chapter | Read Manga |
 |--------------|----------------|------------|
 | ![Select manga](assets/selectManga.png) | ![Select chapter](assets/selectChapter.png) | ![Read manga](assets/readManga.png) |
+
+<!-- Add an empty line to separate tables -->
+
+| Look at Bookmarks | 
+|-------------------------|
+<img src="assets/referBookmarks.png" alt="Refer to Past Bookmarks" width="200" />
 
 ## Project Structure
 
