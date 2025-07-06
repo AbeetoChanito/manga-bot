@@ -18,8 +18,8 @@ A Discord bot for browsing and reading manga directly within Discord using data 
 <!-- Add an empty line to separate tables -->
 
 | Look at Bookmarks | 
-|-------------------------|
-<img src="assets/referBookmarks.png" alt="Refer to Past Bookmarks" width="200" />
+|-------------------|
+| <img src="assets/referBookmarks.png" alt="Refer to Past Bookmarks" width="200" /> |
 
 ## Project Structure
 
