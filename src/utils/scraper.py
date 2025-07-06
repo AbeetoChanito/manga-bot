@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from datetime import timedelta
 from aiohttp_client_cache import CachedSession, MongoDBBackend
 from dataclasses import dataclass
+from typing import Mapping
 
 MANGAPARK_BASE_URL = "https://mangapark.com"
 
@@ -44,12 +45,7 @@ def parse_cover_images(html: str) -> list[Manga]:
     cover_items = soup.find_all(lambda x: x.name == "img" and "thumb" in x["src"])
     assert cover_items is not None
 
-    return [Manga(tag.parent["href"], tag["title"], tag["src"]) for tag in cover_items]  # type: ignore
-
-
-def get_search_url(search_query: str) -> str:
-    search = urlencode({"word": search_query})
-    return f"{MANGAPARK_BASE_URL}/search?{search}"
+    return [Manga(tag.parent.get("href", None), tag["title"], tag["src"]) for tag in cover_items]  # type: ignore
 
 
 async def get_html_raw(url: str) -> str:
@@ -88,7 +84,8 @@ async def get_html_raw(url: str) -> str:
 
 
 async def search_manga_links(input_search: str) -> list[Manga]:
-    search_url = get_search_url(input_search)
+    search = urlencode({"word": input_search})
+    search_url = f"{MANGAPARK_BASE_URL}/search?{search}"
     html_data = await get_html_raw(search_url)
     manga_covers = parse_cover_images(html_data)
     return manga_covers
@@ -106,6 +103,19 @@ async def get_manga_chapter_images(chapter_link: str) -> list[str]:
     images = parse_page_images(html_data)
 
     return images
+
+
+async def convert_manga_links_to_manga_objects(
+    manga_links: list[Mapping[str, str]],
+) -> list[Manga]:
+    manga_objects = []
+    for bookmark in manga_links:
+        link = bookmark["link"]
+        search_url = f"{MANGAPARK_BASE_URL}{link}"
+        html_data = await get_html_raw(search_url)
+        covers = parse_cover_images(html_data)
+        manga_objects.append(Manga(link, covers[0].name, covers[0].cover))
+    return manga_objects
 
 
 # proof of concept cli to show the scraper works

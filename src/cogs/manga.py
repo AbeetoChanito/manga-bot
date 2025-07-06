@@ -1,5 +1,4 @@
 import discord
-import utils.scraper as scraper  # type: ignore
 import utils.bot_util as bot_util  # type: ignore
 from utils.backend import Backend  # type: ignore
 from .manga_selector import MangaSelectorView  # type: ignore

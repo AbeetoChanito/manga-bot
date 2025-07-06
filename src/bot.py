@@ -18,4 +18,5 @@ async def on_ready():
 
 bot.load_extension("cogs.pingpong")
 bot.load_extension("cogs.manga")
+bot.load_extension("cogs.bookmarks")
 bot.run(BOT_TOKEN)

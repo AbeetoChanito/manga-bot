@@ -41,7 +41,9 @@ class MangaReaderView(discord.ui.View):
 
     async def handle_bookmark_jumper(self, user_id: int):
         backend = await Backend.get_instance()
-        chapter: int | None = await backend.find_bookmark(user_id, self.manga_link)
+        chapter: int | None = await backend.find_bookmark_chapter(
+            user_id, self.manga_link
+        )
         if chapter is None:
             return
         if self.button is None:
