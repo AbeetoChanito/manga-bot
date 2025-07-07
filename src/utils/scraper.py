@@ -48,6 +48,14 @@ def parse_cover_images(html: str) -> list[Manga]:
     return [Manga(tag.parent.get("href", None), tag["title"], tag["src"]) for tag in cover_items]  # type: ignore
 
 
+def parse_manga_description(html: str) -> str:
+    soup = BeautifulSoup(html, "html.parser")
+    description_tag = soup.find(lambda x: x.name == "div" and x.get("class", None) == ["limit-html-p"])
+    assert description_tag is not None
+
+    return description_tag.get_text()
+
+
 async def get_html_raw(url: str) -> str:
     # NOTE: the cookies are crucial for retrieving the image files
     cache = MongoDBBackend(expire_after=timedelta(days=1))
@@ -105,6 +113,15 @@ async def get_manga_chapter_images(chapter_link: str) -> list[str]:
     return images
 
 
+async def get_manga_description(chapter_link: str) -> str:
+    # NOTE: we might use this html data later in get_manga_chapters,
+    # but all of the requests are cached 
+    html_data = await get_html_raw(f"{MANGAPARK_BASE_URL}{chapter_link}")
+    description = parse_manga_description(html_data)
+
+    return description
+
+
 async def convert_manga_links_to_manga_objects(
     manga_links: list[Mapping[str, str]],
 ) -> list[Manga]:
@@ -144,7 +161,6 @@ async def main():
     images = await get_manga_chapter_images(chapter_link)
     for i, link in enumerate(images):
         print(f"{i}: {link}")
-
 
 if __name__ == "__main__":
     asyncio.run(main())

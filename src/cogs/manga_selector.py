@@ -47,7 +47,9 @@ class MangaSelector(discord.ui.Select["MangaSelectorView"]):
         self.file = await bot_util.url_to_image_file(
             f"{scraper.MANGAPARK_BASE_URL}{manga.cover}"
         )
+        description = await scraper.get_manga_description(manga.link)
         embed.set_image(url=f"attachment://{self.file.filename}")
+        embed.description = description
         return embed
 
     async def callback(self, interaction: discord.Interaction):
